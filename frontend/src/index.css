@@ -126,3 +126,50 @@ button {
   font-weight: bold;
   margin-bottom: 0;
 }
+.create-show {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  margin: 25px 0;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
+}
+
+.create-show form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-show input,
+.create-show textarea {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.create-show textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.create-show button {
+  width: 150px;
+}
+
+.show-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.show-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
+}
+
+.show-card h2 {
+  margin-top: 0;
+}

@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import Shows from "./pages/Shows";
+
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -95,8 +98,8 @@ function App() {
           <h2>Peblo TV Mini</h2>
 
           <nav>
-            <a href="#">Dashboard</a>
-            <a href="#">Shows</a>
+            <Link to="/">Dashboard</Link>
+            <Link to="/shows">Shows</Link>
             <a href="#">Seasons</a>
             <a href="#">Episodes</a>
             <a href="#">Artwork</a>
@@ -181,4 +184,15 @@ function App() {
   );
 }
 
-export default App;
+function AppWithRouter() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/shows" element={<Shows />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default AppWithRouter;
