@@ -11,6 +11,8 @@ class PublishResponse(BaseModel):
     status: str
     shows_count: int
     episodes_count: int
+    issues_count: int
+    catalog_key: str | None
     error_message: str | None
 
     class Config:

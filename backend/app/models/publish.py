@@ -40,6 +40,16 @@ class PublishRun(Base):
         default=0,
     )
 
+    issues_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+    )
+
+    catalog_key: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
     error_message: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
