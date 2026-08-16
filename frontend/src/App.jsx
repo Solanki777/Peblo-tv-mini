@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import Shows from "./pages/Shows";
 import Seasons from "./pages/Seasons";
 import Episodes from "./pages/Episodes";
+import Artwork from "./pages/Artwork";
 
 
 const API_URL = "http://127.0.0.1:8000";
@@ -104,7 +105,8 @@ function App() {
             <Link to="/shows">Shows</Link>
             <Link to="/seasons">Seasons</Link>
             <Link to="/episodes">Episodes</Link>
-            <a href="#">Artwork</a>
+            <Link to="/artwork">Artwork</Link>
+            
             <a href="#">Publishing</a>
           </nav>
 
@@ -188,12 +190,17 @@ function App() {
 
 function AppWithRouter() {
   return (
+
     <BrowserRouter>
+
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/shows" element={<Shows />} />
         <Route path="/seasons" element={<Seasons />} />
         <Route path="/episodes" element={<Episodes />} />
+        <Route path="/artwork" element={<Artwork />} />
+        
+
       </Routes>
     </BrowserRouter>
   );
