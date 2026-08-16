@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.show import Show
 from app.schemas.show import ShowCreate, ShowResponse
-
+from fastapi import HTTPException
+from app.models.show import Show
+from app.schemas.show import ShowCreate
 
 router = APIRouter(
     prefix="/shows",
@@ -55,3 +57,53 @@ def get_show(show_id: int, db: Session = Depends(get_db)):
         )
 
     return show
+
+
+@router.put("/{show_id}")
+def update_show(
+    show_id: int,
+    data: ShowCreate,
+    db: Session = Depends(get_db)
+):
+    show = db.query(Show).filter(
+        Show.id == show_id
+    ).first()
+
+    if not show:
+        raise HTTPException(
+            status_code=404,
+            detail="Show not found"
+        )
+
+    show.title = data.title
+    show.slug = data.slug
+    show.section = data.section
+    show.synopsis = data.synopsis
+    show.categories = data.categories
+
+    db.commit()
+    db.refresh(show)
+
+    return show
+
+@router.delete("/{show_id}")
+def delete_show(
+    show_id: int,
+    db: Session = Depends(get_db)
+):
+    show = db.query(Show).filter(
+        Show.id == show_id
+    ).first()
+
+    if not show:
+        raise HTTPException(
+            status_code=404,
+            detail="Show not found"
+        )
+
+    db.delete(show)
+    db.commit()
+
+    return {
+        "message": "Show deleted successfully"
+    }

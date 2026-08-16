@@ -15,38 +15,44 @@ function Shows() {
 
   const [message, setMessage] = useState("");
 
+  const token = localStorage.getItem("access_token");
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
+
   const fetchShows = async () => {
     try {
-      const token = localStorage.getItem("access_token");
-
       const response = await axios.get(
         `${API_URL}/shows/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        config
       );
 
       setShows(response.data);
+
     } catch (error) {
       console.error("Failed to load shows:", error);
+
     } finally {
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
     fetchShows();
   }, []);
+
+
 
   const handleCreateShow = async (e) => {
     e.preventDefault();
     setMessage("");
 
     try {
-      const token = localStorage.getItem("access_token");
-
       await axios.post(
         `${API_URL}/shows/`,
         {
@@ -56,12 +62,9 @@ function Shows() {
           synopsis: synopsis || null,
           categories,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        config
       );
+
 
       setMessage("Show created successfully!");
 
@@ -71,8 +74,11 @@ function Shows() {
       setSynopsis("");
       setCategories("");
 
-      await fetchShows();
+      fetchShows();
+
+
     } catch (error) {
+
       setMessage(
         error.response?.data?.detail ||
         "Failed to create show"
@@ -80,99 +86,201 @@ function Shows() {
     }
   };
 
+
+
+  const handleDeleteShow = async (id) => {
+
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this show?"
+    );
+
+
+    if (!confirmDelete) return;
+
+
+    try {
+
+      await axios.delete(
+        `${API_URL}/shows/${id}`,
+        config
+      );
+
+
+      setMessage(
+        "Show deleted successfully!"
+      );
+
+
+      fetchShows();
+
+
+    } catch (error) {
+
+      setMessage(
+        error.response?.data?.detail ||
+        "Delete failed"
+      );
+    }
+  };
+
+
+
   if (loading) {
     return <p>Loading shows...</p>;
   }
 
+
+
   return (
     <div>
+
       <h1>Shows</h1>
 
+
+      {/* Create Show */}
+
       <div className="create-show">
+
         <h2>Create Show</h2>
 
+
         <form onSubmit={handleCreateShow}>
+
           <input
             type="text"
             placeholder="Title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e)=>setTitle(e.target.value)}
             required
           />
+
 
           <input
             type="text"
             placeholder="Slug"
             value={slug}
-            onChange={(e) => setSlug(e.target.value)}
+            onChange={(e)=>setSlug(e.target.value)}
             required
           />
+
 
           <input
             type="text"
             placeholder="Section"
             value={section}
-            onChange={(e) => setSection(e.target.value)}
+            onChange={(e)=>setSection(e.target.value)}
           />
+
 
           <input
             type="text"
             placeholder="Categories"
             value={categories}
-            onChange={(e) => setCategories(e.target.value)}
+            onChange={(e)=>setCategories(e.target.value)}
           />
+
 
           <textarea
             placeholder="Synopsis"
             value={synopsis}
-            onChange={(e) => setSynopsis(e.target.value)}
+            onChange={(e)=>setSynopsis(e.target.value)}
           />
+
 
           <button type="submit">
             Create Show
           </button>
+
+
         </form>
+
 
         {message && (
           <p className="message">
             {message}
           </p>
         )}
+
       </div>
+
+
+
+      {/* Existing Shows */}
+
 
       <h2>Existing Shows</h2>
 
-      {shows.length === 0 ? (
-        <p>No shows found.</p>
-      ) : (
-        <div className="show-list">
-          {shows.map((show) => (
-            <div className="show-card" key={show.id}>
-              <h2>{show.title}</h2>
 
-              <p>
-                <strong>Slug:</strong> {show.slug}
-              </p>
+      {
+        shows.length === 0 ? (
 
-              <p>
-                <strong>Section:</strong>{" "}
-                {show.section || "—"}
-              </p>
+          <p>No shows found.</p>
 
-              <p>
-                <strong>Categories:</strong>{" "}
-                {show.categories || "—"}
-              </p>
+        ) : (
 
-              <p>
-                {show.synopsis || "No synopsis available."}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+          <div className="show-list">
+
+            {
+              shows.map((show)=>(
+
+                <div
+                  className="show-card"
+                  key={show.id}
+                >
+
+                  <h2>
+                    {show.title}
+                  </h2>
+
+
+                  <p>
+                    <strong>Slug:</strong>{" "}
+                    {show.slug}
+                  </p>
+
+
+                  <p>
+                    <strong>Section:</strong>{" "}
+                    {show.section || "—"}
+                  </p>
+
+
+                  <p>
+                    <strong>Categories:</strong>{" "}
+                    {show.categories || "—"}
+                  </p>
+
+
+                  <p>
+                    {show.synopsis ||
+                    "No synopsis available."}
+                  </p>
+
+
+
+                  <button
+                    onClick={() =>
+                      handleDeleteShow(show.id)
+                    }
+                  >
+                    Delete
+                  </button>
+
+
+                </div>
+
+              ))
+            }
+
+          </div>
+
+        )
+      }
+
+
     </div>
   );
 }
+
 
 export default Shows;

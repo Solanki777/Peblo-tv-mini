@@ -173,3 +173,8 @@ button {
 .show-card h2 {
   margin-top: 0;
 }
+.show-card button {
+  background: #dc2626;
+  padding: 8px 15px;
+  margin-top: 10px;
+}
