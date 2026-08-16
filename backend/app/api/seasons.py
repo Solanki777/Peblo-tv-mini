@@ -40,6 +40,57 @@ def list_seasons(db: Session = Depends(get_db)):
     return db.query(Season).all()
 
 
+@router.put("/{season_id}")
+def update_season(
+    season_id: int,
+    data: SeasonCreate,
+    db: Session = Depends(get_db)
+):
+    season = db.query(Season).filter(
+        Season.id == season_id
+    ).first()
+
+    if not season:
+        raise HTTPException(
+            status_code=404,
+            detail="Season not found"
+        )
+
+    season.show_id = data.show_id
+    season.season_number = data.season_number
+
+    db.commit()
+    db.refresh(season)
+
+    return season
+
+
+
+@router.delete("/{season_id}")
+def delete_season(
+    season_id: int,
+    db: Session = Depends(get_db)
+):
+    season = db.query(Season).filter(
+        Season.id == season_id
+    ).first()
+
+    if not season:
+        raise HTTPException(
+            status_code=404,
+            detail="Season not found"
+        )
+
+    db.delete(season)
+    db.commit()
+
+    return {
+        "message": "Season deleted successfully"
+    }
+
+
+
+
 @router.get("/{season_id}", response_model=SeasonResponse)
 def get_season(season_id: int, db: Session = Depends(get_db)):
     season = db.query(Season).filter(

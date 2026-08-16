@@ -10,6 +10,8 @@ function Seasons() {
   const [selectedShow, setSelectedShow] = useState("");
   const [seasonNumber, setSeasonNumber] = useState("");
 
+  const [editingId, setEditingId] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -21,6 +23,10 @@ function Seasons() {
     },
   };
 
+  // -------------------------
+  // FETCH SHOWS
+  // -------------------------
+
   const fetchShows = async () => {
     try {
       const response = await axios.get(
@@ -30,13 +36,25 @@ function Seasons() {
 
       setShows(response.data);
 
-      if (response.data.length > 0) {
-        setSelectedShow(String(response.data[0].id));
+      if (
+        response.data.length > 0 &&
+        !selectedShow
+      ) {
+        setSelectedShow(
+          String(response.data[0].id)
+        );
       }
     } catch (error) {
-      console.error("Failed to load shows:", error);
+      console.error(
+        "Failed to load shows:",
+        error
+      );
     }
   };
+
+  // -------------------------
+  // FETCH SEASONS
+  // -------------------------
 
   const fetchSeasons = async () => {
     try {
@@ -47,7 +65,10 @@ function Seasons() {
 
       setSeasons(response.data);
     } catch (error) {
-      console.error("Failed to load seasons:", error);
+      console.error(
+        "Failed to load seasons:",
+        error
+      );
     } finally {
       setLoading(false);
     }
@@ -57,6 +78,10 @@ function Seasons() {
     fetchShows();
     fetchSeasons();
   }, []);
+
+  // -------------------------
+  // CREATE SEASON
+  // -------------------------
 
   const handleCreateSeason = async (e) => {
     e.preventDefault();
@@ -77,24 +102,128 @@ function Seasons() {
         config
       );
 
-      setMessage("Season created successfully!");
+      setMessage(
+        "Season created successfully!"
+      );
+
       setSeasonNumber("");
 
       await fetchSeasons();
     } catch (error) {
       setMessage(
         error.response?.data?.detail ||
-        "Failed to create season"
+          "Failed to create season"
       );
     }
   };
+
+  // -------------------------
+  // START EDIT
+  // -------------------------
+
+  const handleEditSeason = (season) => {
+    setEditingId(season.id);
+
+    setSelectedShow(
+      String(season.show_id)
+    );
+
+    setSeasonNumber(
+      String(season.season_number)
+    );
+
+    setMessage("");
+  };
+
+  // -------------------------
+  // UPDATE SEASON
+  // -------------------------
+
+  const handleUpdateSeason = async (e) => {
+    e.preventDefault();
+    setMessage("");
+
+    if (!selectedShow) {
+      setMessage("Please select a show.");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `${API_URL}/seasons/${editingId}`,
+        {
+          show_id: Number(selectedShow),
+          season_number: Number(seasonNumber),
+        },
+        config
+      );
+
+      setMessage(
+        "Season updated successfully!"
+      );
+
+      clearForm();
+
+      await fetchSeasons();
+    } catch (error) {
+      setMessage(
+        error.response?.data?.detail ||
+          "Failed to update season"
+      );
+    }
+  };
+
+  // -------------------------
+  // DELETE SEASON
+  // -------------------------
+
+  const handleDeleteSeason = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this season?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(
+        `${API_URL}/seasons/${id}`,
+        config
+      );
+
+      setMessage(
+        "Season deleted successfully!"
+      );
+
+      await fetchSeasons();
+    } catch (error) {
+      setMessage(
+        error.response?.data?.detail ||
+          "Delete failed"
+      );
+    }
+  };
+
+  // -------------------------
+  // CLEAR FORM
+  // -------------------------
+
+  const clearForm = () => {
+    setEditingId(null);
+    setSeasonNumber("");
+  };
+
+  // -------------------------
+  // GET SHOW NAME
+  // -------------------------
 
   const getShowTitle = (showId) => {
     const show = shows.find(
       (item) => item.id === showId
     );
 
-    return show ? show.title : `Show #${showId}`;
+    return show
+      ? show.title
+      : `Show #${showId}`;
   };
 
   if (loading) {
@@ -105,10 +234,22 @@ function Seasons() {
     <div>
       <h1>Seasons</h1>
 
-      <div className="create-show">
-        <h2>Create Season</h2>
+      {/* CREATE / EDIT */}
 
-        <form onSubmit={handleCreateSeason}>
+      <div className="create-show">
+        <h2>
+          {editingId
+            ? "Edit Season"
+            : "Create Season"}
+        </h2>
+
+        <form
+          onSubmit={
+            editingId
+              ? handleUpdateSeason
+              : handleCreateSeason
+          }
+        >
           <select
             value={selectedShow}
             onChange={(e) =>
@@ -142,8 +283,19 @@ function Seasons() {
           />
 
           <button type="submit">
-            Create Season
+            {editingId
+              ? "Update Season"
+              : "Create Season"}
           </button>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={clearForm}
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
 
         {message && (
@@ -152,6 +304,8 @@ function Seasons() {
           </p>
         )}
       </div>
+
+      {/* EXISTING SEASONS */}
 
       <h2>Existing Seasons</h2>
 
@@ -165,7 +319,9 @@ function Seasons() {
               key={season.id}
             >
               <h2>
-                {getShowTitle(season.show_id)}
+                {getShowTitle(
+                  season.show_id
+                )}
               </h2>
 
               <p>
@@ -177,6 +333,26 @@ function Seasons() {
                 <strong>Season ID:</strong>{" "}
                 {season.id}
               </p>
+
+              <div className="show-actions">
+                <button
+                  onClick={() =>
+                    handleEditSeason(season)
+                  }
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleDeleteSeason(
+                      season.id
+                    )
+                  }
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
