@@ -2,11 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.deps import require_editor
 from app.models.show import Show
+from app.models.user import User
 from app.schemas.show import ShowCreate, ShowResponse
-from fastapi import HTTPException
-from app.models.show import Show
-from app.schemas.show import ShowCreate
 
 router = APIRouter(
     prefix="/shows",
@@ -15,7 +14,11 @@ router = APIRouter(
 
 
 @router.post("/", response_model=ShowResponse)
-def create_show(data: ShowCreate, db: Session = Depends(get_db)):
+def create_show(
+    data: ShowCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_editor),
+):
     existing_show = db.query(Show).filter(
         Show.slug == data.slug
     ).first()
@@ -59,11 +62,12 @@ def get_show(show_id: int, db: Session = Depends(get_db)):
     return show
 
 
-@router.put("/{show_id}")
+@router.put("/{show_id}", response_model=ShowResponse)
 def update_show(
     show_id: int,
     data: ShowCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_editor),
 ):
     show = db.query(Show).filter(
         Show.id == show_id
@@ -73,6 +77,22 @@ def update_show(
         raise HTTPException(
             status_code=404,
             detail="Show not found"
+        )
+
+    # FIXED: this used to check nothing, so renaming show A's slug to
+    # show B's existing slug would 500 on the DB's unique constraint
+    # instead of returning a clean, editor-readable error. Now it checks
+    # the same way create does, excluding the row being edited so a show
+    # can keep its own slug.
+    slug_conflict = (
+        db.query(Show)
+        .filter(Show.slug == data.slug, Show.id != show_id)
+        .first()
+    )
+    if slug_conflict:
+        raise HTTPException(
+            status_code=400,
+            detail="A show with this slug already exists",
         )
 
     show.title = data.title
@@ -86,10 +106,12 @@ def update_show(
 
     return show
 
+
 @router.delete("/{show_id}")
 def delete_show(
     show_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_editor),
 ):
     show = db.query(Show).filter(
         Show.id == show_id

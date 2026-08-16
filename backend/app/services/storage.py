@@ -1,15 +1,18 @@
 """Storage abstraction.
 
-Everything that reads or writes a "file" (the published catalogue today;
-artwork uploads if you wire this in later) goes through a `StorageBackend`
-rather than touching the filesystem directly. That's the whole point: swap
-`LocalDiskStorage` for an `R2Storage` class that implements the same
-interface and nothing else in the app has to change.
+Everything that reads or writes a "file" (the published catalogue, artwork
+uploads) goes through a `StorageBackend` rather than touching the
+filesystem directly. That's the whole point: swap `LocalDiskStorage` for
+an `R2Storage` class that implements the same interface and nothing else
+in the app has to change.
 
 The interface is intentionally tiny - just what this project needs:
     - write_bytes / write_json: durable, atomic writes
     - read_bytes / read_json: reads, raising FileNotFoundError if missing
     - exists: existence check
+    - delete: best-effort removal (used when a re-uploaded artwork changes
+      file extension, e.g. a PNG replaced by a JPEG, so the old file
+      doesn't linger orphaned under the old key)
     - key_path: where a key physically lives (used for logging/debugging)
 
 Atomicity: `write_bytes` never lets a reader observe a partially-written
@@ -40,6 +43,9 @@ class StorageBackend(ABC):
     def exists(self, key: str) -> bool: ...
 
     @abstractmethod
+    def delete(self, key: str) -> None: ...
+
+    @abstractmethod
     def key_path(self, key: str) -> str: ...
 
     def write_json(self, key: str, obj: Any) -> None:
@@ -54,8 +60,8 @@ class LocalDiskStorage(StorageBackend):
     """Local-filesystem storage. Swap for MinIO/R2 in prod by pointing
     STORAGE_ROOT at a mounted bucket, or by writing an R2Storage class with
     the same interface (boto3 / the S3-compatible R2 API) and constructing
-    that instead in api/catalog.py and api/publish.py. Nothing else in the
-    app needs to know the difference.
+    that instead in api/catalog.py, api/publish.py, and api/artworks.py.
+    Nothing else in the app needs to know the difference.
     """
 
     def __init__(self, root: str):
@@ -98,6 +104,11 @@ class LocalDiskStorage(StorageBackend):
 
     def exists(self, key: str) -> bool:
         return os.path.exists(self.key_path(key))
+
+    def delete(self, key: str) -> None:
+        path = self.key_path(key)
+        if os.path.exists(path):
+            os.remove(path)
 
 
 def get_storage() -> StorageBackend:

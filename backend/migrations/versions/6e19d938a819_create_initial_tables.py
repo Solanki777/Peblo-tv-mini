@@ -1,9 +1,30 @@
 """create initial tables
 
 Revision ID: 6e19d938a819
-Revises: 
+Revises:
 Create Date: 2026-08-16 12:54:27.478725
 
+FIXED: this migration was out of sync with the SQLAlchemy models in two
+ways that would break the app the moment it hit real code paths:
+
+  1. publish_runs was missing `issues_count` and `catalog_key` - both
+     columns app/models/publish.py declares and app/api/publish.py writes
+     to on every publish run. Running `alembic upgrade head` against this
+     original file and then calling POST /admin/catalog/publish would
+     raise a DB error (column does not exist) - i.e. the publish endpoint,
+     the single most important endpoint in the whole app, would 500 on
+     first use.
+  2. seasons had no unique constraint on (show_id, season_number), which
+     is what stops two seasons silently sharing a number under one show
+     (see app/models/season.py and app/api/seasons.py for the matching
+     API-level check).
+
+Since this is still the *initial* migration (down_revision=None, nothing
+has shipped on top of it), both are fixed in place here rather than as a
+follow-up migration - simpler than an alter-table migration chain for a
+schema that was never actually deployed with the broken shape. If this
+were a table Alembic had already applied in a shared environment, the
+right move would be a new migration instead of editing history.
 """
 from typing import Sequence, Union
 
@@ -29,6 +50,8 @@ def upgrade() -> None:
     sa.Column('status', sa.String(length=30), nullable=False),
     sa.Column('shows_count', sa.Integer(), nullable=False),
     sa.Column('episodes_count', sa.Integer(), nullable=False),
+    sa.Column('issues_count', sa.Integer(), nullable=False, server_default='0'),
+    sa.Column('catalog_key', sa.String(length=500), nullable=True),
     sa.Column('error_message', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
@@ -57,7 +80,8 @@ def upgrade() -> None:
     sa.Column('show_id', sa.Integer(), nullable=False),
     sa.Column('season_number', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['show_id'], ['shows.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('show_id', 'season_number', name='uq_season_show_number')
     )
     op.create_index(op.f('ix_seasons_show_id'), 'seasons', ['show_id'], unique=False)
     op.create_table('episodes',
