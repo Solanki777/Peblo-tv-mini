@@ -78,3 +78,54 @@ def get_artwork(
         )
 
     return artwork
+
+@router.put("/{artwork_id}")
+def update_artwork(
+    artwork_id: int,
+    data: ArtworkCreate,
+    db: Session = Depends(get_db)
+):
+    artwork = db.query(Artwork).filter(
+        Artwork.id == artwork_id
+    ).first()
+
+    if not artwork:
+        raise HTTPException(
+            status_code=404,
+            detail="Artwork not found"
+        )
+
+    artwork.episode_id = data.episode_id
+    artwork.artwork_type = data.artwork_type
+    artwork.storage_key = data.storage_key
+    artwork.width = data.width
+    artwork.height = data.height
+    artwork.size_bytes = data.size_bytes
+
+    db.commit()
+    db.refresh(artwork)
+
+    return artwork
+
+
+@router.delete("/{artwork_id}")
+def delete_artwork(
+    artwork_id: int,
+    db: Session = Depends(get_db)
+):
+    artwork = db.query(Artwork).filter(
+        Artwork.id == artwork_id
+    ).first()
+
+    if not artwork:
+        raise HTTPException(
+            status_code=404,
+            detail="Artwork not found"
+        )
+
+    db.delete(artwork)
+    db.commit()
+
+    return {
+        "message": "Artwork deleted successfully"
+    }

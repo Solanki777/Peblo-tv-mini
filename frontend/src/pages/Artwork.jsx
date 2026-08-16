@@ -14,6 +14,8 @@ function Artwork() {
   const [height, setHeight] = useState("");
   const [sizeBytes, setSizeBytes] = useState("");
 
+  const [editingId, setEditingId] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -25,6 +27,10 @@ function Artwork() {
     },
   };
 
+  // -------------------------
+  // FETCH EPISODES
+  // -------------------------
+
   const fetchEpisodes = async () => {
     try {
       const response = await axios.get(
@@ -34,15 +40,25 @@ function Artwork() {
 
       setEpisodes(response.data);
 
-      if (response.data.length > 0) {
+      if (
+        response.data.length > 0 &&
+        !selectedEpisode
+      ) {
         setSelectedEpisode(
           String(response.data[0].id)
         );
       }
     } catch (error) {
-      console.error("Failed to load episodes:", error);
+      console.error(
+        "Failed to load episodes:",
+        error
+      );
     }
   };
+
+  // -------------------------
+  // FETCH ARTWORK
+  // -------------------------
 
   const fetchArtworks = async () => {
     try {
@@ -53,7 +69,10 @@ function Artwork() {
 
       setArtworks(response.data);
     } catch (error) {
-      console.error("Failed to load artworks:", error);
+      console.error(
+        "Failed to load artworks:",
+        error
+      );
     } finally {
       setLoading(false);
     }
@@ -63,6 +82,10 @@ function Artwork() {
     fetchEpisodes();
     fetchArtworks();
   }, []);
+
+  // -------------------------
+  // CREATE ARTWORK
+  // -------------------------
 
   const handleCreateArtwork = async (e) => {
     e.preventDefault();
@@ -87,12 +110,11 @@ function Artwork() {
         config
       );
 
-      setMessage("Artwork created successfully!");
+      setMessage(
+        "Artwork created successfully!"
+      );
 
-      setStorageKey("");
-      setWidth("");
-      setHeight("");
-      setSizeBytes("");
+      clearForm();
 
       await fetchArtworks();
     } catch (error) {
@@ -102,6 +124,128 @@ function Artwork() {
       );
     }
   };
+
+  // -------------------------
+  // START EDIT
+  // -------------------------
+
+  const handleEditArtwork = (artwork) => {
+    setEditingId(artwork.id);
+
+    setSelectedEpisode(
+      String(artwork.episode_id)
+    );
+
+    setArtworkType(
+      artwork.artwork_type
+    );
+
+    setStorageKey(
+      artwork.storage_key
+    );
+
+    setWidth(
+      String(artwork.width)
+    );
+
+    setHeight(
+      String(artwork.height)
+    );
+
+    setSizeBytes(
+      String(artwork.size_bytes)
+    );
+
+    setMessage("");
+  };
+
+  // -------------------------
+  // UPDATE ARTWORK
+  // -------------------------
+
+  const handleUpdateArtwork = async (e) => {
+    e.preventDefault();
+    setMessage("");
+
+    if (!selectedEpisode) {
+      setMessage("Please select an episode.");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `${API_URL}/artworks/${editingId}`,
+        {
+          episode_id: Number(selectedEpisode),
+          artwork_type: artworkType,
+          storage_key: storageKey,
+          width: Number(width),
+          height: Number(height),
+          size_bytes: Number(sizeBytes),
+        },
+        config
+      );
+
+      setMessage(
+        "Artwork updated successfully!"
+      );
+
+      clearForm();
+
+      await fetchArtworks();
+    } catch (error) {
+      setMessage(
+        error.response?.data?.detail ||
+          "Failed to update artwork"
+      );
+    }
+  };
+
+  // -------------------------
+  // DELETE ARTWORK
+  // -------------------------
+
+  const handleDeleteArtwork = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this artwork?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(
+        `${API_URL}/artworks/${id}`,
+        config
+      );
+
+      setMessage(
+        "Artwork deleted successfully!"
+      );
+
+      await fetchArtworks();
+    } catch (error) {
+      setMessage(
+        error.response?.data?.detail ||
+          "Delete failed"
+      );
+    }
+  };
+
+  // -------------------------
+  // CLEAR FORM
+  // -------------------------
+
+  const clearForm = () => {
+    setEditingId(null);
+    setStorageKey("");
+    setWidth("");
+    setHeight("");
+    setSizeBytes("");
+  };
+
+  // -------------------------
+  // GET EPISODE TITLE
+  // -------------------------
 
   const getEpisodeTitle = (episodeId) => {
     const episode = episodes.find(
@@ -121,14 +265,28 @@ function Artwork() {
     <div>
       <h1>Artwork</h1>
 
-      <div className="create-show">
-        <h2>Add Artwork</h2>
+      {/* CREATE / EDIT FORM */}
 
-        <form onSubmit={handleCreateArtwork}>
+      <div className="create-show">
+        <h2>
+          {editingId
+            ? "Edit Artwork"
+            : "Add Artwork"}
+        </h2>
+
+        <form
+          onSubmit={
+            editingId
+              ? handleUpdateArtwork
+              : handleCreateArtwork
+          }
+        >
           <select
             value={selectedEpisode}
             onChange={(e) =>
-              setSelectedEpisode(e.target.value)
+              setSelectedEpisode(
+                e.target.value
+              )
             }
             required
           >
@@ -141,7 +299,8 @@ function Artwork() {
                 key={episode.id}
                 value={episode.id}
               >
-                {episode.episode_id} - {episode.title}
+                {episode.episode_id} -{" "}
+                {episode.title}
               </option>
             ))}
           </select>
@@ -153,10 +312,21 @@ function Artwork() {
             }
             required
           >
-            <option value="poster">Poster</option>
-            <option value="thumbnail">Thumbnail</option>
-            <option value="banner">Banner</option>
-            <option value="background">Background</option>
+            <option value="poster">
+              Poster
+            </option>
+
+            <option value="thumbnail">
+              Thumbnail
+            </option>
+
+            <option value="banner">
+              Banner
+            </option>
+
+            <option value="background">
+              Background
+            </option>
           </select>
 
           <input
@@ -203,8 +373,19 @@ function Artwork() {
           />
 
           <button type="submit">
-            Add Artwork
+            {editingId
+              ? "Update Artwork"
+              : "Add Artwork"}
           </button>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={clearForm}
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
 
         {message && (
@@ -213,6 +394,8 @@ function Artwork() {
           </p>
         )}
       </div>
+
+      {/* EXISTING ARTWORK */}
 
       <h2>Existing Artwork</h2>
 
@@ -243,13 +426,36 @@ function Artwork() {
 
               <p>
                 <strong>Dimensions:</strong>{" "}
-                {artwork.width} × {artwork.height}
+                {artwork.width} ×{" "}
+                {artwork.height}
               </p>
 
               <p>
                 <strong>Size:</strong>{" "}
                 {artwork.size_bytes} bytes
               </p>
+
+              <div className="show-actions">
+                <button
+                  onClick={() =>
+                    handleEditArtwork(
+                      artwork
+                    )
+                  }
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleDeleteArtwork(
+                      artwork.id
+                    )
+                  }
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
