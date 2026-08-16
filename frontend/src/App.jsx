@@ -3,6 +3,7 @@ import axios from "axios";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import Shows from "./pages/Shows";
 import Seasons from "./pages/Seasons";
+import Episodes from "./pages/Episodes";
 
 
 const API_URL = "http://127.0.0.1:8000";
@@ -102,7 +103,7 @@ function App() {
             <Link to="/">Dashboard</Link>
             <Link to="/shows">Shows</Link>
             <Link to="/seasons">Seasons</Link>
-            <a href="#">Episodes</a>
+            <Link to="/episodes">Episodes</Link>
             <a href="#">Artwork</a>
             <a href="#">Publishing</a>
           </nav>
@@ -192,6 +193,7 @@ function AppWithRouter() {
         <Route path="/" element={<App />} />
         <Route path="/shows" element={<Shows />} />
         <Route path="/seasons" element={<Seasons />} />
+        <Route path="/episodes" element={<Episodes />} />
       </Routes>
     </BrowserRouter>
   );
