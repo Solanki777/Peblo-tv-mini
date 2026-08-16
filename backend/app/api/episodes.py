@@ -91,3 +91,57 @@ def get_episode(
         )
 
     return episode
+
+
+@router.put("/{episode_id}")
+def update_episode(
+    episode_id: int,
+    data: EpisodeCreate,
+    db: Session = Depends(get_db)
+):
+    episode = db.query(Episode).filter(
+        Episode.id == episode_id
+    ).first()
+
+    if not episode:
+        raise HTTPException(
+            status_code=404,
+            detail="Episode not found"
+        )
+
+    episode.episode_id = data.episode_id
+    episode.season_id = data.season_id
+    episode.episode_number = data.episode_number
+    episode.title = data.title
+    episode.duration_seconds = data.duration_seconds
+    episode.language = data.language
+    episode.content_group = data.content_group
+    episode.status = data.status
+
+    db.commit()
+    db.refresh(episode)
+
+    return episode
+
+
+@router.delete("/{episode_id}")
+def delete_episode(
+    episode_id: int,
+    db: Session = Depends(get_db)
+):
+    episode = db.query(Episode).filter(
+        Episode.id == episode_id
+    ).first()
+
+    if not episode:
+        raise HTTPException(
+            status_code=404,
+            detail="Episode not found"
+        )
+
+    db.delete(episode)
+    db.commit()
+
+    return {
+        "message": "Episode deleted successfully"
+    }
