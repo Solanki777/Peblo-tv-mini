@@ -5,6 +5,8 @@ import Shows from "./pages/Shows";
 import Seasons from "./pages/Seasons";
 import Episodes from "./pages/Episodes";
 import Artwork from "./pages/Artwork";
+import Publishing from "./pages/Publishing";
+import Dashboard from "./pages/Dashboard";
 
 
 const API_URL = "http://127.0.0.1:8000";
@@ -107,7 +109,9 @@ function App() {
             <Link to="/episodes">Episodes</Link>
             <Link to="/artwork">Artwork</Link>
             
-            <a href="#">Publishing</a>
+            <Link to="/publishing">
+  Publishing
+</Link>
           </nav>
 
           <button onClick={handleLogout}>
@@ -199,7 +203,15 @@ function AppWithRouter() {
         <Route path="/seasons" element={<Seasons />} />
         <Route path="/episodes" element={<Episodes />} />
         <Route path="/artwork" element={<Artwork />} />
-        
+        <Route
+          path="/publishing"
+          element={<Publishing />}
+        />
+        <Route
+  path="/dashboard"
+  element={<Dashboard />}
+/>
+                
 
       </Routes>
     </BrowserRouter>
