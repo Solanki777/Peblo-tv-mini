@@ -1,20 +1,83 @@
+name: peblo-tv-mini
+
 services:
   db:
-    image: postgres:16
-    container_name: peblo-postgres
+    image: postgres:16-alpine
     environment:
-      POSTGRES_DB: peblo
-      POSTGRES_USER: peblo
-      POSTGRES_PASSWORD: peblo_password
+      POSTGRES_USER: ${POSTGRES_USER:-peblo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peblo_password}
+      POSTGRES_DB: ${POSTGRES_DB:-peblo}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U peblo -d peblo"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-peblo}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend/backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-peblo}:${POSTGRES_PASSWORD:-peblo_password}@db:5432/${POSTGRES_DB:-peblo}
+      STORAGE_ROOT: /app/storage
+      CATALOG_KEY: ${CATALOG_KEY:-catalog/catalog.json}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  seed:
+    build: ./backend/backend
+    command: ["python", "-m", "seed.seed"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-peblo}:${POSTGRES_PASSWORD:-peblo_password}@db:5432/${POSTGRES_DB:-peblo}
+      STORAGE_ROOT: /app/storage
+      CATALOG_KEY: ${CATALOG_KEY:-catalog/catalog.json}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
+      API_BASE_URL: http://api:8000
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-admin12345}
+      SEED_EDITOR_USERNAME: ${SEED_EDITOR_USERNAME:-editor}
+      SEED_EDITOR_PASSWORD: ${SEED_EDITOR_PASSWORD:-editor12345}
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+  cms:
+    build: ./frontend/frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/frontend/src:/app/src
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # viewer:
+  #   Part C (the child-facing browse UI) isn't built yet - see README's
+  #   "what's left" section. This service will read GET /catalog /
+  #   /catalog/search only, same shape as the `cms` service above, once
+  #   it exists.
 
 volumes:
-  postgres_data:
+  db_data:
+  storage_data:
