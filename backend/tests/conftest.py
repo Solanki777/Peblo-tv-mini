@@ -88,7 +88,7 @@ def admin_token(client, db_session) -> str:
     # what seed/seed.py does for real via a direct DB write.
     from app.models.user import User
 
-    token = _register_and_login(client, "admin1", "adminpass123")
+    _register_and_login(client, "admin1", "adminpass123")
     user = db_session.query(User).filter(User.username == "admin1").first()
     user.role = "admin"
     db_session.commit()

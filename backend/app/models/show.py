@@ -1,9 +1,12 @@
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.season import Season
 
 
 class Show(Base):
@@ -34,10 +37,7 @@ class Show(Base):
         nullable=True,
     )
 
-    categories: Mapped[str] = mapped_column(
-        Text,
-        default="",
-    )
+    categories: Mapped[str] = mapped_column(Text)
 
     seasons: Mapped[List["Season"]] = relationship(
         back_populates="show",

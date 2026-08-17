@@ -1,9 +1,13 @@
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.episode import Episode
+    from app.models.show import Show
 
 
 class Season(Base):
@@ -18,20 +22,13 @@ class Season(Base):
 
     season_number: Mapped[int] = mapped_column(Integer)
 
-    show: Mapped["Show"] = relationship(
-        back_populates="seasons"
-    )
+    show: Mapped["Show"] = relationship(back_populates="seasons")
 
     episodes: Mapped[List["Episode"]] = relationship(
         back_populates="season",
         cascade="all, delete-orphan",
     )
 
-    # FIXED: nothing previously stopped two seasons with the same
-    # season_number under one show - this is the DB-level backstop for the
-    # check now done in app/api/seasons.py (belt and suspenders: the API
-    # gives a clean error, this guarantees it holds even if something else
-    # ever writes to this table directly, e.g. a seed script).
     __table_args__ = (
         UniqueConstraint(
             "show_id",

@@ -110,7 +110,7 @@ def test_content_group_collapses_language_variants(client, admin_token):
     season_entry = show_entry["seasons"][0]
 
     assert len(season_entry["episodes"]) == 1  # collapsed into ONE entry
-    languages = {l["language"] for l in season_entry["episodes"][0]["languages"]}
+    languages = {lang["language"] for lang in season_entry["episodes"][0]["languages"]}
     assert languages == {"en", "hi"}
 
 
@@ -355,7 +355,7 @@ def test_search_filters_compose(client, admin_token):
     )
     shows = resp.json()["sections"][0]["shows"]
     langs = shows[0]["seasons"][0]["episodes"][0]["languages"]
-    assert {l["language"] for l in langs} == {"hi"}
+    assert {lang["language"] for lang in langs} == {"hi"}
 
     # a language with no matches in this section returns no shows.
     resp = client.get("/catalog/search", params={"section": "featured"})

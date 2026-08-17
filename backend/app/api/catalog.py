@@ -75,12 +75,12 @@ def search_catalog(
                 for ep in season_entry["episodes"]:
                     languages = ep["languages"]
                     if language:
-                        languages = [l for l in languages if l["language"] == language]
+                        languages = [lang for lang in languages if lang["language"] == language]
                         if not languages:
                             continue
 
                     episode_title_match = q_lower is not None and any(
-                        q_lower in l["title"].lower() for l in ep["languages"]
+                        q_lower in lang["title"].lower() for lang in ep["languages"]
                     )
 
                     if q_lower is not None and not (

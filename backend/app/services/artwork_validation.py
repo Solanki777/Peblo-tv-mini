@@ -94,8 +94,8 @@ def validate_artwork_upload(artwork_type: str, data: bytes) -> ValidatedImage:
         img_format = (image.format or "").upper()
     except (UnidentifiedImageError, OSError):
         raise ArtworkValidationError(
-            [f"This doesn't look like a valid image file. "
-             f"Please upload a JPEG or PNG."]
+            ["This doesn't look like a valid image file. "
+             "Please upload a JPEG or PNG."]
         )
 
     if img_format not in ARTWORK_ALLOWED_FORMATS:

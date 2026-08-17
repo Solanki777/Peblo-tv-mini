@@ -18,7 +18,7 @@ services:
       retries: 20
 
   api:
-    build: ./backend/backend
+    build: ./backend
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-peblo}:${POSTGRES_PASSWORD:-peblo_password}@db:5432/${POSTGRES_DB:-peblo}
       STORAGE_ROOT: /app/storage
@@ -41,7 +41,7 @@ services:
       start_period: 10s
 
   seed:
-    build: ./backend/backend
+    build: ./backend
     command: ["python", "-m", "seed.seed"]
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-peblo}:${POSTGRES_PASSWORD:-peblo_password}@db:5432/${POSTGRES_DB:-peblo}
@@ -61,13 +61,13 @@ services:
     restart: "no"
 
   cms:
-    build: ./frontend/frontend
+    build: ./frontend
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend/frontend/src:/app/src
+      - ./frontend/src:/app/src
     depends_on:
       api:
         condition: service_healthy
