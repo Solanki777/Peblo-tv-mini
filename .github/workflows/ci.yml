@@ -8,6 +8,7 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -15,22 +16,23 @@ jobs:
         with:
           python-version: "3.13"
           cache: "pip"
-          cache-dependency-path: backend/backend/requirements-dev.txt
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
-        working-directory: backend/backend
-        run: pip install -r requirements-dev.txt
+        working-directory: backend
+        run: pip install -r requirements.txt
 
       - name: Lint (ruff)
-        working-directory: backend/backend
+        working-directory: backend
         run: ruff check app tests seed
 
-      - name: Test (pytest, in-memory SQLite - see tests/conftest.py)
-        working-directory: backend/backend
+      - name: Test (pytest)
+        working-directory: backend
         run: pytest -v
 
   frontend:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,67 +40,58 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: frontend/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend/frontend
+        working-directory: frontend
         run: npm ci
 
       - name: Lint (oxlint)
-        working-directory: frontend/frontend
+        working-directory: frontend
         run: npm run lint
 
       - name: Build
-        working-directory: frontend/frontend
+        working-directory: frontend
         run: npm run build
 
   build-images:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Build API image
-        run: docker build -t peblo-tv-mini-api:${{ github.sha }} ./backend/backend
+        run: docker build -t peblo-tv-mini-api:${{ github.sha }} ./backend
 
       - name: Build CMS image
-        run: docker build -t peblo-tv-mini-cms:${{ github.sha }} ./frontend/frontend
-
-      # Neither image is pushed anywhere here - see the "deploy" job
-      # below for why, and README.md's pipeline section for the plan.
+        run: docker build -t peblo-tv-mini-cms:${{ github.sha }} ./frontend
 
   deploy:
     needs: build-images
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy (documented, not wired to a real target)
         run: |
           cat <<'EOF'
           This step intentionally does not deploy anywhere - there's no
-          real cloud target for a take-home. Written out, this is what
-          it would do:
+          real cloud target for a take-home.
 
-          1. Re-build (or re-tag) the two images that build-images just
-             proved build cleanly, and push both to a registry
-             (ghcr.io/<org>/peblo-tv-mini-api:<sha> and
-             .../peblo-tv-mini-cms:<sha>) using OIDC-based auth from the
-             GitHub Actions runner to the registry - no long-lived
-             registry credentials stored in the repo.
-          2. Run `alembic upgrade head` against the production database
-             as a separate, explicit step *before* the new API image
-             goes live - not baked into the image's own startup command
-             the way docker-entrypoint.sh does for local dev. Migrations
-             and rollout are two different failure domains in prod and
-             should be able to fail/alert independently.
-          3. Update the running service (ECS/Cloud Run/Fly/etc - the
-             actual target isn't decided here) to the new image tag,
-             behind a health check on GET /health, with the previous
-             tag kept as an immediate rollback target.
-          4. Smoke-test GET /catalog and POST /admin/catalog/publish
-             (against a canary or staging environment) before treating
-             the deploy as complete.
+          Production deployment plan:
 
-          See README.md "Secrets" for how SECRET_KEY / DATABASE_URL
-          would reach the runner/target instead of living in this repo.
+          1. Build and tag the API and CMS images with the Git SHA.
+          2. Push them to a container registry using OIDC-based
+             authentication rather than long-lived credentials.
+          3. Run `alembic upgrade head` against the production database
+             before deploying the new API image.
+          4. Roll out the new images behind a health check on GET /health.
+          5. Keep the previous image available for immediate rollback.
+          6. Smoke-test GET /catalog and the publishing flow against
+             staging/canary before completing the deployment.
+
+          Secrets such as DATABASE_URL and SECRET_KEY would be supplied
+          through the production secret manager/environment rather than
+          committed to the repository.
           EOF
