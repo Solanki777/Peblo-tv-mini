@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pip install ruff pytest
+
+      - name: Lint (ruff)
+        working-directory: backend
+        run: ruff check app tests seed
+
+      - name: Test (pytest)
+        working-directory: backend
+        run: pytest -v
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint (oxlint)
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  build-images:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t peblo-tv-mini-api:${{ github.sha }} ./backend
+
+      - name: Build CMS image
+        run: docker build -t peblo-tv-mini-cms:${{ github.sha }} ./frontend
+
+  deploy:
+    needs: build-images
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy (documented, not wired to a real target)
+        run: |
+          cat <<'EOF'
+          This step intentionally does not deploy anywhere - there's no
+          real cloud target for a take-home.
+
+          Production deployment plan:
+
+          1. Build and tag the API and CMS images with the Git SHA.
+          2. Push them to a container registry using OIDC-based
+             authentication rather than long-lived credentials.
+          3. Run `alembic upgrade head` against the production database
+             before deploying the new API image.
+          4. Roll out the new images behind a health check on GET /health.
+          5. Keep the previous image available for immediate rollback.
+          6. Smoke-test GET /catalog and the publishing flow against
+             staging/canary before completing the deployment.
+
+          Secrets such as DATABASE_URL and SECRET_KEY would be supplied
+          through the production secret manager/environment rather than
+          committed to the repository.
+          EOF

@@ -3,9 +3,12 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-SECRET_KEY = "peblo-tv-mini-secret-change-in-production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
+
+# FIXED: SECRET_KEY/ALGORITHM/expiry used to be hardcoded constants in this
+# file (including the literal string "peblo-tv-mini-secret-change-in-
+# production" as the signing key). That's now sourced from app.config,
+# which reads it from the environment - see config.py for details.
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

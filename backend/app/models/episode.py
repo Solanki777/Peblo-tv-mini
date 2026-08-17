@@ -1,15 +1,18 @@
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.artwork import Artwork
+    from app.models.season import Season
 
 
 class Episode(Base):
